@@ -10,7 +10,7 @@ import signal from '@peter.naydenov/signals';
 const 
       initalValue = 0
     , signalNest = signal ()
-    , simple = signalNest.item ( initalValue )
+    , simple = signalNest.state ( initalValue )
     ;
 
 simple.get () // => 0
@@ -31,7 +31,7 @@ complex.get () // => 12
 ## Installation
 
 Nothing to install yet...
-
+Work in progress.
 
 
 

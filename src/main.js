@@ -13,7 +13,7 @@ function main () {
  *  - `get`: Retrieves the current value of the item.
  *  - `set`: Attempts to update the item's value. If validation is provided and fails, returns false. Otherwise, returns true.
  */
-    function item ( initialValue, validation=false ) {
+    function state ( initialValue, validation=false ) {
                 const id = Symbol ( 'item' )
                 storage[id] = { id, value: initialValue, validate: validation, deps: new Set() }
 
@@ -35,7 +35,7 @@ function main () {
                                     return true                                            
                             } // set func.
                     }
-        } // item func.
+        } // state func.
 
 
 
@@ -63,7 +63,7 @@ function main () {
         } // computed func.
 
     return {
-              item
+              state
             , computed
         }
 } // main func.
