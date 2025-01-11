@@ -22,9 +22,7 @@
   "bugs": {
     "url": "https://github.com/PeterNaydenov/signals/issues"
   },
-  "dependencies": {
-    "@peter.naydenov/notice": "^2.4.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "c8": "^10.1.3",
