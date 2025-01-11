@@ -5,25 +5,28 @@
 Implementation of signals for Javascript. Simple reactivity system.
 
 ```js
-import { Signal } from '@peter.naydenov/signals';
+import signal from '@peter.naydenov/signals';
 
 const 
       initalValue = 0
-    , signal = new Signal( initalValue )
+    , signalNest = signal ()
+    , simple = signalNest.item ( initalValue )
     ;
 
-signal.get () // => 0
-signal.set ( 1 ) // => 1
+simple.get () // => 0
+simple.set ( 1 ) // => true
+simple.get () // => 1
 
 
 
-const computed = new Signal.Computed( () => signal.get () + 10 )
+const complex = signalNest.computed ( () => simplel.get () + 10 );
 
-computed.get () // => 11
-
-signal.set ( 2 ) // => 2
-computed.get () // => 12
+complex.get () // => 11
+signal.set ( 2 ) // => true
+complex.get () // => 12
 ```
+
+
 
 ## Installation
 

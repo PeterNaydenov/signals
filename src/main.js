@@ -47,7 +47,6 @@ function main () {
  *  - `get`: Retrieves the current value of the computed item. If the computed item is marked as dirty,
  *    it recalculates the value using the provided function.
  */
-
     function computed ( fn ) {
             const id = Symbol ( 'computed' );
             callID = id
