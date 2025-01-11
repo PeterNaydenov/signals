@@ -2,7 +2,7 @@
 *EARLY INVESTIGATION STAGE - Under heavy development.*
 
 
-Implementation of signals for Javascript. Idea is to provide a simple and lightweight way to create and manage signals.
+Implementation of signals for Javascript. Simple reactivity system.
 
 ```js
 import { Signal } from '@peter.naydenov/signals';
