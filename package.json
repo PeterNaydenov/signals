@@ -1,0 +1,24 @@
+{
+  "name": "@peter.naydenov/signals",
+  "description": "Signals",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "author": "Peter Naydenov",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PeterNaydenov/signals.git"
+  },
+  "keywords": [
+    "signals"
+  ],
+  "homepage": "https://github.com/PeterNaydenov/signals#readme",
+  "bugs": {
+    "url": "https://github.com/PeterNaydenov/signals/issues"
+  }
+}
