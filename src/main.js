@@ -19,28 +19,38 @@ function main () {
 // TODO: Did promises have a place here?
 // TODO: What about dependency injection here or in computed and effect functions?
 // TODO: Can 'notes' get benefit from signals?
-                return {
-                          get : () => {   
-                                        if ( callID && callID.toString() === 'Symbol(effect)'   )   storage[id].effects.add ( callID )                          
-                                        if ( callID && callID.toString() === 'Symbol(computed)' )   storage[id].deps.add ( callID )
-                                        return storage[id].value
-                                } // get func.
-                        , set : ( newValue ) => {
-                                    const rec = storage[id];
-                                    if ( rec.validate) {
-                                                if ( rec.validate && rec.validate ( newValue ) )  storage[id].value = structuredClone ( newValue )
-                                                else                                              return false
-                                            }
-                                    else storage[id].value = structuredClone ( newValue )
-                                    for ( const val of storage[id].deps ) {
-                                                storage[val].dirty = true
-                                        }
-                                    for ( const val of storage[id].effects ) {
-                                                storage[val].fn ()
-                                        }
-                                    return true                                            
-                            } // set func.
 
+                function set ( newValue ) {
+                            const rec = storage[id];
+                            if ( rec.validate) {
+                                        if ( rec.validate && rec.validate ( newValue ) )  storage[id].value = structuredClone ( newValue )
+                                        else                                              return false
+                                    }
+                            else storage[id].value = structuredClone ( newValue )
+                            for ( const val of storage[id].deps ) {
+                                        storage[val].dirty = true
+                                }
+                            for ( const val of storage[id].effects ) {
+                                        storage[val].fn ()
+                                }
+                            return true                                            
+                        } // set func.
+
+            function get () {   
+                            if ( callID && callID.toString() === 'Symbol(effect)'   )   storage[id].effects.add ( callID )                          
+                            if ( callID && callID.toString() === 'Symbol(computed)' )   storage[id].deps.add ( callID )
+                            return storage[id].value
+                        } // get func.
+
+            function modify ( fn ) {
+                            const oldValue = storage[id].value;
+                            return set ( fn ( oldValue ) )
+                        } // modify func.
+
+                return {
+                          get
+                        , set
+                        , modify
                         // TODO: Destroy method for all elements : state, computed, effect
                     }
         } // state func.
