@@ -1,6 +1,4 @@
 # Signals (@peter.naydenov/signals)
-*EARLY INVESTIGATION STAGE - Under heavy development.*
-*NOT PUBLISHED YET.*
 
 Implementation of signals for Javascript. Simple reactivity system.
 
