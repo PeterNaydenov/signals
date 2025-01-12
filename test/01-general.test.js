@@ -126,4 +126,18 @@ describe ( 'Signals', () => {
      }) // it Relation among signal states, computed and effects
 
 
+     it ( 'Signal state change with modify', () => {
+                    const sign = signals ();
+                    const myState = sign.state ( 0 );
+                    // Difference between set and modify is that modify argument is a function
+                    // that receives the current value and returns the new value
+                    // Sometimes from DE(development experience) is easier when you have a previous value available
+
+                    myState.modify ( value => value + 10 )
+                    expect ( myState.get () ).to.be.equal ( 10 )
+                    myState.modify ( value => value + 10 )
+                    expect ( myState.get () ).to.be.equal ( 20 )
+        }) // it Signal state change with modify
+
+
 }) // describe
