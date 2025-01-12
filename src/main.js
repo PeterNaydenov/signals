@@ -16,9 +16,7 @@ function main () {
     function state ( initialValue, validation=false ) {
                 const id = Symbol ( 'item' )
                 storage[id] = { id, value: structuredClone ( initialValue ) , validate: validation, deps: new Set(), effects: new Set() }
-// TODO: Checkout what if initial value is array, object or else...
 // TODO: Did promises have a place here?
-// TODO: Initial value should br immutable -> structureCopy it
 // TODO: What about dependency injection here or in computed and effect functions?
 // TODO: Can 'notes' get benefit from signals?
                 return {
