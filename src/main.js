@@ -15,7 +15,7 @@ function main () {
  */
     function state ( initialValue, validation=false ) {
                 const id = Symbol ( 'item' )
-                storage[id] = { id, value: initialValue, validate: validation, deps: new Set(), effects: new Set() }
+                storage[id] = { id, value: structuredClone ( initialValue ) , validate: validation, deps: new Set(), effects: new Set() }
 // TODO: Checkout what if initial value is array, object or else...
 // TODO: Did promises have a place here?
 // TODO: Initial value should br immutable -> structureCopy it
@@ -34,11 +34,11 @@ function main () {
                                                 else                                              return false
                                             }
                                     else storage[id].value = newValue
-                                    for ( const val of storage[id].effects ) {
-                                                storage[val].fn ()
-                                        }
                                     for ( const val of storage[id].deps ) {
                                                 storage[val].dirty = true
+                                        }
+                                    for ( const val of storage[id].effects ) {
+                                                storage[val].fn ()
                                         }
                                     return true                                            
                             } // set func.
@@ -94,7 +94,7 @@ function main () {
         } // effect func.
 
     return {
-              state
+              state    // signal state used in computed and as trigger of effects
             , computed // defferred computation
             , effect   // immediate execution
         }
