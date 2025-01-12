@@ -82,4 +82,48 @@ describe ( 'Signals', () => {
      }) // it Callback on signal state change
 
 
+
+     it ( 'Relation among signal states, computed and effects', () => {
+                    const sign = signals ();
+                    let 
+                          counter = 0
+                        , counter2 = 0
+                        , counter_extra = 0
+                        ;
+                    
+                    const
+                          a = sign.state ( 0 )
+                        , b = sign.state ( 0 )
+                        , c = sign.computed ( () => a.get () + 10 ) // computed based only on 'a' 
+                        , d = sign.computed ( () => {   // computed based only on 'b'
+                                                    counter_extra++
+                                                    return  b.get () + a.get() + 20 
+                                                }) 
+                        , e = sign.computed ( () => a.get () + b.get () ) // computed based on 'a' and 'b'
+                        , eff = sign.effect ( [a], () => counter++ )
+                        , effBoth = sign.effect ( [a, b], () => counter2++ )
+                        ;
+
+                    expect ( c.get() ).to.be.equal ( 10 )
+                    expect ( e.get () ).to.be.equal ( 0 )
+
+                    a.set ( 12 )
+                    a.set ( 10 )
+
+                    b.set ( 30 )
+                    expect ( c.get() ).to.be.equal ( 20 )
+                    expect ( e.get () ).to.be.equal ( 40 )
+                    
+                    // Effect is executed immediately after signal state change
+                    expect ( counter ).to.be.equal ( 2 ) // because 'a' changed 2 times
+                    expect ( counter2 ).to.be.equal ( 3 ) // because 'a' was changed 2 times and 'b' 1 time
+
+                    // Computed 'd' was called once during initialization
+                    expect ( counter_extra ).to.be.equal ( 1 )
+                    // Computed signals are evaluated on only on call. Lazy evaluation
+                    d.get ()
+                    expect ( counter_extra ).to.be.equal ( 2 )
+     }) // it Relation among signal states, computed and effects
+
+
 }) // describe
