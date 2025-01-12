@@ -30,10 +30,10 @@ function main () {
                         , set : ( newValue ) => {
                                     const rec = storage[id];
                                     if ( rec.validate) {
-                                                if ( rec.validate && rec.validate ( newValue ) )  storage[id].value = newValue
+                                                if ( rec.validate && rec.validate ( newValue ) )  storage[id].value = structuredClone ( newValue )
                                                 else                                              return false
                                             }
-                                    else storage[id].value = newValue
+                                    else storage[id].value = structuredClone ( newValue )
                                     for ( const val of storage[id].deps ) {
                                                 storage[val].dirty = true
                                         }
