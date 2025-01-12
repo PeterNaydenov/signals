@@ -15,11 +15,16 @@ function main () {
  */
     function state ( initialValue, validation=false ) {
                 const id = Symbol ( 'item' )
-                storage[id] = { id, value: initialValue, validate: validation, deps: new Set() }
-
+                storage[id] = { id, value: initialValue, validate: validation, deps: new Set(), effects: new Set() }
+// TODO: Checkout what if initial value is array, object or else...
+// TODO: Did promises have a place here?
+// TODO: Initial value should br immutable -> structureCopy it
+// TODO: What about dependency injection here or in computed and effect functions?
+// TODO: Can 'notes' get benefit from signals?
                 return {
-                          get : () => {                             
-                                        if ( callID && callID !== id )   storage[id].deps.add ( callID )
+                          get : () => {   
+                                        if ( callID && callID.toString() === 'Symbol(effect)'   )   storage[id].effects.add ( callID )                          
+                                        if ( callID && callID.toString() === 'Symbol(computed)' )   storage[id].deps.add ( callID )
                                         return storage[id].value
                                 } // get func.
                         , set : ( newValue ) => {
@@ -29,11 +34,16 @@ function main () {
                                                 else                                              return false
                                             }
                                     else storage[id].value = newValue
+                                    for ( const val of storage[id].effects ) {
+                                                storage[val].fn ()
+                                        }
                                     for ( const val of storage[id].deps ) {
                                                 storage[val].dirty = true
                                         }
                                     return true                                            
                             } // set func.
+
+                        // TODO: Destroy method for all elements : state, computed, effect
                     }
         } // state func.
 
@@ -50,11 +60,17 @@ function main () {
     function computed ( fn ) {
             const id = Symbol ( 'computed' );
             callID = id
-            storage[id] = { id, value:fn(), fn, dirty: false }
+            storage[id] = { id, value:fn(), fn, effects: new Set(), dirty: false }
             callID = null
             
             return { 
                     get: () => {
+                                if ( callID && callID.toString() === 'Symbol(effect)'   )   storage[id].effects.add ( callID )
+                                if ( !callID ) {
+                                            for ( const val of storage[id].effects ) {
+                                                        storage[val].fn ()
+                                                }
+                                    }
                                 let rec = storage[id];
                                 if ( rec.dirty ) rec.value = rec.fn ()
                                 return rec.value 
@@ -62,9 +78,25 @@ function main () {
                 }
         } // computed func.
 
+/**
+ * Registers a side effect function that is executed when any of the specified 
+ * signal states are updated.
+ *
+ * @param {Array} relations - An array of signals that this effect depends on.
+ * @param {Function} fn - The side effect function to be executed when any of the signals change.
+ */
+    function effect ( relations, fn ) {
+            const id = Symbol ( 'effect' );
+            callID = id
+            storage[id] = { id, fn }
+            relations.forEach ( signal => signal.get() )   // Register effect in signal state
+            callID = null
+        } // effect func.
+
     return {
               state
-            , computed
+            , computed // defferred computation
+            , effect   // immediate execution
         }
 } // main func.
 
