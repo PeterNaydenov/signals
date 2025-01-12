@@ -47,9 +47,22 @@ complex.get () // -> 'computed effect'
 
 ## Installation
 
-Nothing to install yet...
-Work in progress.
+```bash
+npm install @peter.naydenov/signals
+```
 
+Call from your project:
+
+```js
+import signal from '@peter.naydenov/signals';
+// create a signal nest - a collection of signal states, computed states and effects
+const signalNest = signal ();
+
+// start using the signal library
+const a = signalNest.state ( 0 );
+signalNest.effect ( [a], () => console.log ( 'a was changed' ) );
+// etc...
+```
 
 
 
