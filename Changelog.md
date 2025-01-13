@@ -2,7 +2,7 @@
 
 
 
-## 1.0.1 (2025-01-13)
+## 1.0.2 (2025-01-13)
 - [x] Refactoring: Multiple files;
 
 
