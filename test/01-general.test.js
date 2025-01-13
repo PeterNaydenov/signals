@@ -20,7 +20,7 @@ describe ( 'Signals', () => {
                           simple = h.state ( 2 )
                         , computed = h.computed ( () => simple.get () + 10 )
                         ;
-
+                        
                     expect ( computed.get () ).to.be.equal ( 12 )
                     simple.set ( 4 )
                     expect ( computed.get () ).to.be.equal ( 14 )

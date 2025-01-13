@@ -1,111 +1,50 @@
+import computedLib from './computed.js'
+import effectLib   from './effects.js';
+import stateLib    from './states.js';
+
+
+
+/**
+ * Creates the main API object for reactive items.
+ * 
+ * The API object contains three methods: `state`, `computed` and `effect`. 
+ * 
+ * `state` creates a reactive item with an initial value and optional validation.
+ * `computed` creates a computed reactive item with a function that returns its value.
+ * `effect` creates an effect reactive item with a function that is called immediately after any of its dependencies change.
+ * 
+ * The local storage is an object with two properties: `storage` and `callID`. 
+ * `storage` is a map of reactive items.
+ * `callID` is a unique identifier for the current call.
+ */
 function main () {
-    const storage = {}
-    let callID = null;
+    /**
+     * A local storage for reactive items.
+     * 
+     * @type {Object} 
+     * @property {Object} storage - A map of reactive items.
+     * @property {null|Symbol} callID - A unique identifier for the current call.
+     */
+    const local = {
+                storage : {},
+                callID : null
+            };
 
-/**
- * Creates a reactive item with an initial value and optional validation function.
- * 
- * @param {any} initialValue - The initial value of the item.
- * @param {Function|boolean} [validation=false] - An optional validation function that takes a new value
- * and returns a boolean indicating if the new value is valid. Defaults to false, which means no validation.
- * 
- * @returns {Object} An object with `get` and `set` methods:
- *  - `get`: Retrieves the current value of the item.
- *  - `set`: Attempts to update the item's value. If validation is provided and fails, returns false. Otherwise, returns true.
- */
-    function state ( initialValue, validation=false ) {
-                const id = Symbol ( 'item' )
-                storage[id] = { id, value: structuredClone ( initialValue ) , validate: validation, deps: new Set(), effects: new Set() }
-// TODO: Did promises have a place here?
-// TODO: What about dependency injection here or in computed and effect functions?
-// TODO: Can 'notes' get benefit from signals?
-
-                function set ( newValue ) {
-                            const rec = storage[id];
-                            if ( rec.validate) {
-                                        if ( rec.validate && rec.validate ( newValue ) )  storage[id].value = structuredClone ( newValue )
-                                        else                                              return false
-                                    }
-                            else storage[id].value = structuredClone ( newValue )
-                            for ( const val of storage[id].deps ) {
-                                        storage[val].dirty = true
-                                }
-                            for ( const val of storage[id].effects ) {
-                                        storage[val].fn ()
-                                }
-                            return true                                            
-                        } // set func.
-
-            function get () {   
-                            if ( callID && callID.toString() === 'Symbol(effect)'   )   storage[id].effects.add ( callID )                          
-                            if ( callID && callID.toString() === 'Symbol(computed)' )   storage[id].deps.add ( callID )
-                            return storage[id].value
-                        } // get func.
-
-            function modify ( fn ) {
-                            const oldValue = storage[id].value;
-                            return set ( fn ( oldValue ) )
-                        } // modify func.
-
-                return {
-                          get
-                        , set
-                        , modify
-                        // TODO: Destroy method for all elements : state, computed, effect
-                    }
-        } // state func.
-
-
-
-/**
- * Creates a computed reactive item that derives its value from a given function.
- * 
- * @param {Function} fn - A function that returns a value of the computed item. 
- * @returns {Object} An object with a `get` method:
- *  - `get`: Retrieves the current value of the computed item. If the computed item is marked as dirty,
- *    it recalculates the value using the provided function.
- */
-    function computed ( fn ) {
-            const id = Symbol ( 'computed' );
-            callID = id
-            storage[id] = { id, value:fn(), fn, effects: new Set(), dirty: false }
-            callID = null
-            
-            return { 
-                    get: () => {
-                                if ( callID && callID.toString() === 'Symbol(effect)'   )   storage[id].effects.add ( callID )
-                                if ( !callID ) {
-                                            for ( const val of storage[id].effects ) {
-                                                        storage[val].fn ()
-                                                }
-                                    }
-                                let rec = storage[id];
-                                if ( rec.dirty ) rec.value = rec.fn ()
-                                return rec.value 
-                            }
-                }
-        } // computed func.
-
-/**
- * Registers a side effect function that is executed when any of the specified 
- * signal states are updated.
- *
- * @param {Array} relations - An array of signals that this effect depends on.
- * @param {Function} fn - The side effect function to be executed when any of the signals change.
- */
-    function effect ( relations, fn ) {
-            const id = Symbol ( 'effect' );
-            callID = id
-            storage[id] = { id, fn }
-            relations.forEach ( signal => signal.get() )   // Register effect in signal state
-            callID = null
-        } // effect func.
-
-    return {
-              state    // signal state used in computed and as trigger of effects
-            , computed // defferred computation
-            , effect   // immediate execution
+    /**
+     * Creates the main API object.
+     * 
+     * @returns {Object} An object with `state`, `computed` and `effect` methods.
+     * 
+     * @property {function} state - Creates a reactive item with an initial value and optional validation.
+     * @property {function} computed - Creates a computed reactive item with a function that returns its value.
+     * @property {function} effect - Creates an effect reactive item with a function that is called immediately after any of its dependencies change.
+     */
+    const API =  {
+              state : stateLib ( local )       // signal state used in computed and as trigger of effects
+            , computed : computedLib ( local ) // defferred computation
+            , effect : effectLib ( local )     // immediate execution
         }
+    return API
 } // main func.
 
 
