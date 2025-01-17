@@ -12,7 +12,7 @@
 Implementation of signals for Javascript. Simple reactivity system.
 Library cover all needed features: has states, effects and computed states. 
 
-All `computed states` are lazy evaluated, computed evaluation is memorized for future calls. New evaluation only if dirty flag is set.
+All `computed states` are lazy evaluated, computed evaluation is memorized for future calls. New evaluation will be executed only if dirty flag is set.
 
 `Effects` are function that will be executed immediately after change of a watched state or computed state. If effect watches a state, will be executed imidiately after state change. If effect watches a computed state, will be executed after next call of that computed state when it value will be evaluated again. 
 
