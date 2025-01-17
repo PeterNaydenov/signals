@@ -1,3 +1,8 @@
+/**
+ *    Signals - A simple reactivity system.
+ *   - Started on January 9th, 2025
+ *  
+ */
 import effectLib   from './effects.js';
 import stateLib    from './states.js';
 import computedLib from './computed.js'
