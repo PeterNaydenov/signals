@@ -28,9 +28,9 @@ function main () {
      * @property {function} effect - Creates an effect reactive item with a function that is called immediately after any of its dependencies change.
      */
     const API =  {
-              state : stateLib ( local )       // signal state used in computed and as trigger of effects
-            , computed : computedLib ( local ) // defferred computation
-            , effect : effectLib ( local )     // immediate execution
+              state    : stateLib ( local )      // signal state used in computed and as trigger of effects
+            , computed : computedLib ( local )   // defferred computation
+            , effect   : effectLib ( local )     // immediate execution
         }
     return API
 } // main func.
