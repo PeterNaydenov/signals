@@ -1,5 +1,14 @@
 # Signals (@peter.naydenov/signals)
 
+![version](https://img.shields.io/github/package-json/v/peterNaydenov/signals)
+![license](https://img.shields.io/github/license/peterNaydenov/signals)
+![issues](https://img.shields.io/github/issues/peterNaydenov/signals)
+![language](https://img.shields.io/github/languages/top/peterNaydenov/signals)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/peterNaydenov/signals)
+![npm package minimized gzipped size (scoped)](https://img.shields.io/bundlejs/size/%40peter.naydenov/signals)
+
+
+
 Implementation of signals for Javascript. Simple reactivity system.
 
 ```js
