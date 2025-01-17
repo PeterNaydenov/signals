@@ -16,7 +16,7 @@ All `computed states` are lazy evaluated, computed evaluation is memorized for f
 
 `Effects` are function that will be executed immediately after change of a watched state or computed state. If effect watches a state, will be executed imidiately after state change. If effect watches a computed state, will be executed after next call of that computed state when it value will be evaluated again. 
 
-Signal entities are living in a entity - `signal-nest`. Signal-nest is like a storage for related signal entities. Smaller size of the nest will work faster, will be easyer to understand the relations among signal entities. Nothing stops you from creating single signal-nest for everything but multiple signal-nests are more development friendly.
+Signal entities are living in a entity - `signal-nest`. Signal-nest is like a storage for related signal entities. Smaller size of the nest will work faster, will be easyer to understand the relations among signal entities. Nothing stops you from creating single signal-nest for everything but multiple signal-nests are more developer friendly.
 
 ```js
 import signal from '@peter.naydenov/signals';
