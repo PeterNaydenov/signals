@@ -14,7 +14,7 @@ Library cover all needed features: has states, effects and computed states.
 
 All `computed states` are lazy evaluated, computed evaluation is memorized for future calls. New evaluation will be executed only if dirty flag is set.
 
-`Effects` are function that will be executed immediately after change of a watched state or computed state. If effect watches a state, will be executed imidiately after state change. If effect watches a computed state, will be executed after next call of that computed state when it value will be evaluated again. 
+`Effects` are function that will be executed immediately after change of a watched state or computed state. If effect watches a state, will be executed imidiately after the state change. Effects that watch computed states are executed after next call when the value of that computed state is re-evaluated. 
 
 Signal entities are living in a entity - `signal-nest`. Signal-nest is like a storage for related signal entities. Smaller size of the nest will work faster, will be easyer to understand the relations among signal entities. Nothing stops you from creating single signal-nest for everything but multiple signal-nests are more developer friendly.
 
