@@ -80,6 +80,31 @@ signalNest.effect ( [a], () => console.log ( 'a was changed' ) );
 
 
 
+## Usage - Practical Patterns
+
+
+
+### Validation
+Creating a state has optional validation function as an argument.
+
+```js
+const a = signalNest.state ( 0, ( value ) => value > 0 );
+a.set ( 1 ) // => true
+a.set ( -1 ) // => false
+
+// Set function returns boolean so you can use it in if statements
+if ( a.set ( 1 ) ) {
+    // if setting was successful...
+}
+else {
+    // if setting failed ...
+}
+```
+
+
+
+
+
 ## Credits
 '@peter.naydenov/signals' was created and supported by Peter Naydenov.
 
