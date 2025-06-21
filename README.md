@@ -39,7 +39,7 @@ simple.get () // => 1
 
 
 
-const complex = signalNest.computed ( () => simplel.get () + 10 );
+const complex = signalNest.computed ( () => simple.get () + 10 );
 
 complex.get () // => 11
 signal.set ( 2 ) // => true
