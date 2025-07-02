@@ -18,7 +18,7 @@ return function computed ( fn, ...args ) {
                                if ( l.callID && l.callID.toString() === 'Symbol(effect)'   )   l.storage[id].effects.add ( l.callID )
                                if ( !l.callID ) {
                                            for ( const val of l.storage[id].effects ) {
-                                                       let { fn, defaultArgs } = l.storage[val] 
+                                                       let { fn, defaultArgs } = l.storage[val]
                                                        fn ( ...defaultArgs )
                                                }
                                    }
