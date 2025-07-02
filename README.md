@@ -45,6 +45,18 @@ complex.get () // => 11
 signal.set ( 2 ) // => true
 complex.get () // => 12
 
+// Computed with arguments. Set default argument value in case if no arguments are provided
+const complex2 = signalNest.computed ( x => simple.get () + 10 + x , 0 );
+
+// Request with no arguments will use default value
+// simple == 2, argument == 0 then computed = 2+10+0 = 12
+complex2.get () // => 12
+signal.set ( 3 ) // => true
+// simple == 3, argument == 2 then computed = 3+10+2 = 15
+complex2.get (2) // => 15
+
+
+
 // Effect is executed immediately after signal state change
 signalNest.effect ( [simple], () => {
             console.log ( 'signal state changed' )
