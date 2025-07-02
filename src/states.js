@@ -32,7 +32,8 @@ function state ( initialValue, validation=false ) {
                             l.storage[val].dirty = true
                     }
                 for ( const val of l.storage[id].effects ) {
-                            l.storage[val].fn ()
+                            let { fn, defaultArgs } = l.storage[val];
+                            fn ( ...defaultArgs  )
                     }
                 return true                                            
             } // set func.
