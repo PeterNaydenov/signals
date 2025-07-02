@@ -107,6 +107,54 @@ describe ( 'Signals', () => {
 
 
 
+    it ( 'Effect on state change with arguments', () => {
+                    const h = signals ();
+                    let 
+                          one = h.state ( 2 )
+                        , count = 0
+                        ;
+                    h.effect ( [ one ], (x) => {
+                                expect ( x ).to.be.equal ( 'extra' )
+                                count++
+                        }, 'extra')
+
+                    one.set ( 4 )
+                    expect ( count ).to.be.equal ( 1 )
+            }) // it Effect on state change
+
+
+
+    it ( 'Effect on state change with arguments', () => {
+                    const h = signals ();
+                    let 
+                          one = h.state ( 2 )
+                        , count = 0
+                        , computed = h.computed ( ( x ) => {
+                                                // First execution of computed will use default argument - 'hello'
+                                                if ( count == 0 )   expect ( x ).to.be.equal ( 'hello'  )
+                                                // Second call of computed will use argument - 'mine'
+                                                if ( count == 1 )   expect ( x ).to.be.equal ( 'mine' )
+                                                // On call with no arguments - expect 'hello' as a default argument
+                                                return one.get () + 10
+                                            }, 'hello' )
+                        ;
+
+                    // Effect always is using the default argument. No option to change it 
+                    // because of the automatated execution
+                    h.effect ( [ computed ], (x) => {
+                                expect ( x ).to.be.equal ( 'extra' )
+                                count++
+                        }, 'extra' )
+
+                    one.set ( 4 )
+                    one.get () 
+
+                    computed.get ( 'mine' )
+                    expect ( count ).to.be.equal ( 1 )
+            }) // it Effect on state change
+
+
+
      it ( 'Relation among signal states, computed and effects', () => {
                     const sign = signals ();
                     let 
