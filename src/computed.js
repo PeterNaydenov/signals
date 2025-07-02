@@ -14,11 +14,12 @@ return function computed ( fn, ...args ) {
            l.callID = null
            
            return { 
-                   get: (...args) => {
+                   get: ( ...args ) => {
                                if ( l.callID && l.callID.toString() === 'Symbol(effect)'   )   l.storage[id].effects.add ( l.callID )
                                if ( !l.callID ) {
                                            for ( const val of l.storage[id].effects ) {
-                                                       l.storage[val].fn ()
+                                                       let { fn, defaultArgs } = l.storage[val] 
+                                                       fn ( ...defaultArgs )
                                                }
                                    }
                                let rec = l.storage[id];
