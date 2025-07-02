@@ -28,6 +28,26 @@ describe ( 'Signals', () => {
 
 
 
+    it ( 'Create a computed signal with arguments', () => {
+                    const h = signals ();
+                    const 
+                          simple = h.state ( 2 )
+                          // Provide an argument to computed. Set default value if not provided
+                        , computed = h.computed ( x => simple.get () + 10 + x,  0 )
+                        ;
+                    // simple == 2, then computed = 2+10+0 = 12
+                    expect ( computed.get () ).to.be.equal ( 12 )
+                    simple.set ( 4 )
+                    // simple == 4, then computed = 4+10+0 = 14
+                    expect ( computed.get () ).to.be.equal ( 14 )
+                    simple.set ( 5 )
+                    // Call the computed value with arguments
+                    // simple == 5, argument == 2 then computed = 5+10+2 = 17
+                    expect ( computed.get (2) ).to.be.equal ( 17 )
+        }) // it Create a computed signal with arguments
+
+
+
     it ( 'Create a signal state with validation', () => {
                     const h = signals ();
                     const simple = h.state ( 2 , d => d > 0 );
