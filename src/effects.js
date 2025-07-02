@@ -6,10 +6,10 @@ function effectLib ( l ) {
  * @param {Array} relations - An array of signals that this effect depends on.
  * @param {Function} fn - The side effect function to be executed when any of the signals change.
  */
-return function effect ( relations, fn ) {
+return function effect ( relations, fn, ...args ) {
     const id = Symbol ( 'effect' );
     l.callID = id
-    l.storage[id] = { id, fn }
+    l.storage[id] = { id, fn, defaultArgs: args }
     relations.forEach ( signal => signal.get() )   // Register effect in signal state
     l.callID = null
 } // effect func.
