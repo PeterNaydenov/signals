@@ -1,6 +1,11 @@
 # Release History
 
 
+## 1.2.0 (2025-07-03)
+- [x] Effect with dependency argument;
+
+
+
 ## 1.1.0 (2025-07-02)
 - [x] Computed with arguments;
 
