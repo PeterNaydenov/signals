@@ -84,13 +84,17 @@ describe ( 'Signals', () => {
                     let called = false;
                     let result = 0
                     const simple = h.state ( 2 )
-                        , computed = h.computed ( () => simple.get () + 10 ) 
+                        , computed = h.computed ( ( x ) => { 
+                                                    expect ( x ).to.be.equal ( 'comps' )
+                                                    return simple.get () + 10
+                                                }, 'comps' ) 
                         ;
 
-                    h.effect ( [computed], () => {
+                    h.effect ( [computed], ( x ) => {
+                                        expect ( x ).to.be.equal ( 'extra' )
                                         called = true
                                         result = 25
-                                });
+                                }, 'extra' );
                     // Change of signal state will not change nothing if effect is attached to computed value
                     simple.set ( 12 ) 
                     expect ( called ).to.be.false
