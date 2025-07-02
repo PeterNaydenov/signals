@@ -38,7 +38,6 @@ function state ( initialValue, validation=false ) {
             } // set func.
 
 function get () {   
-                
                 if ( l.callID && l.callID.toString() === 'Symbol(effect)'   )   l.storage[id].effects.add ( l.callID )                          
                 if ( l.callID && l.callID.toString() === 'Symbol(computed)' )   l.storage[id].deps.add ( l.callID )
                 return l.storage[id].value
