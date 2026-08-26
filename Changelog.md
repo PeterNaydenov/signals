@@ -2,6 +2,17 @@
 
 
 
+## 1.3.1 (2026-08-26) 
+- [x] Fix: computed states lost their memoization after the first dependency change — every following read re-executed the computed function. The cache now survives until the next real dependency change;
+- [x] Fix: effects attached to a computed state fired on every read of that computed, even when nothing had changed. Effects now fire only when the computed is re-evaluated and the new value differs from the previous one;
+- [x] Fix: computed states built on top of other computed states could serve stale values after an upstream change. Chained computeds now stay fresh automatically, while same-value changes keep downstream caches untouched;
+- [x] Fix: computed states with arguments returned a wrong cached value when different call styles were interleaved (e.g. `get(5)` followed by `get()`). Each cached result now remembers the arguments it was computed with;
+- [x] Fix: an effect reading its own watched computed state could re-trigger itself endlessly. Nested reads are now served from cache and fire nothing;
+- [x] Fix: values are now fully isolated before validation runs — a validator that modifies its argument can no longer corrupt the original object passed to `set()` or used as initial value;
+- [x] Fix: if one effect threw an exception, all remaining effects of the same change were silently skipped. Effects now run independently; collected errors are re-thrown together after all effects have run;
+
+
+
 ## 1.3.0 (2025-07-22)
 - [x] Fix: dependency tracking compared `Symbol('effect')` / `Symbol('computed')` by `.toString()`, which silently broke if anyone ever renamed the symbol description in `effects.js` / `computed.js`. The libs now set a stable sentinel (`local.EFFECT_CALL` / `local.COMPUTED_CALL`, defined once in `main.js`) and `get()` compares by reference. End-to-end behavior is unchanged for valid code; the dep tracking is no longer fragile to refactors;
 - [x] Fix: `set()` on a non-cloneable value (function, Symbol, etc.) used to throw a raw `DataCloneError` from `structuredClone` with no useful context. The clone is now wrapped in a `clone()` helper that re-throws a `TypeError` with a clear `'signals: state value cannot be cloned (...)'` message so the call site is obvious;
