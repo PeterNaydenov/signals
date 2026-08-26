@@ -30,11 +30,16 @@ function stateLib ( l ) {
  *    If validation is provided and fails, returns false. Otherwise, returns true.
  */
 function state ( initialValue, validation=false ) {
-    if ( validation && !validation ( initialValue ) ) {
+    // Clone first so a mutating validator can never corrupt the caller's
+    // original object; the validated candidate is exactly what gets stored.
+    const initialCandidate = clone ( initialValue )
+    if ( validation && !validation ( initialCandidate ) ) {
                 throw new TypeError ( 'signals: initial value failed validation' )
             }
     const id = Symbol ( 'item' )
-    l.storage[id] = { id, value: clone ( initialValue ) , validate: validation, deps: new Set(), effects: new Set() }
+    // `version` is bumped on every successful set() — computeds compare it
+    // against the version they last saw to detect upstream changes.
+    l.storage[id] = { id, value: initialCandidate, validate: validation, deps: new Set(), effects: new Set(), version: 0 }
 // TODO: Did promises have a place here?
 // TODO: What about dependency injection here or in computed and effect functions?
 // TODO: Can 'notes' get benefit from signals?
@@ -55,19 +60,28 @@ function state ( initialValue, validation=false ) {
      *   rejected the new value.
      */
     function set ( newValue ) {
+                // Clone BEFORE validation: a validator that mutates its argument
+                // must never corrupt the caller's original object, and the stored
+                // value is guaranteed to be the isolated clone.
+                const candidate = clone ( newValue )
                 const rec = l.storage[id];
-                if ( rec.validate) {
-                            if ( rec.validate && rec.validate ( newValue ) )  l.storage[id].value = clone ( newValue )
-                            else                                              return false
-                        }
-                else l.storage[id].value = clone ( newValue )
+                if ( rec.validate && !rec.validate ( candidate ) )   return false
+                l.storage[id].value = candidate
+                l.storage[id].version++                  // computeds detect the change via version mismatch
                 for ( const val of l.storage[id].deps ) {
                             l.storage[val].dirty = true
                     }
+                // Effects run isolated: one throwing effect must not prevent the
+                // remaining effects from running (the state change itself has
+                // already been committed). All collected errors are re-thrown
+                // together after every effect had its chance.
+                const errors = []
                 for ( const val of l.storage[id].effects ) {
                             let { fn, defaultArgs } = l.storage[val];
-                            fn ( ...defaultArgs  )
+                            try { fn ( ...defaultArgs  ) }
+                            catch ( e ) { errors.push ( e ) }
                     }
+                if ( errors.length > 0 )   throw new AggregateError ( errors, 'signals: one or more effects threw during state.set()' )
                 return true
             } // set func.
 
