@@ -12,9 +12,11 @@
 Implementation of signals for Javascript. Simple reactivity system.
 Library cover all needed features: has states, effects and computed states. 
 
-All `computed states` are lazy evaluated, computed evaluation is memorized for future calls. New evaluation will be executed only if dirty flag is set.
+All `computed states` are memoized for future calls: the function runs once at creation, and re-runs lazily on read only when an upstream dependency actually changed or the call uses different arguments.
 
-`Effects` are function that will be executed immediately after change of a watched state or computed state. If effect watches a state, will be executed imidiately after the state change. Effects that watch computed states are executed after next call when the value of that computed state is re-evaluated. 
+`Computed states` can be built on top of other computed states. Chains like `state -> computed -> computed` stay fresh automatically: each computed tracks the versions of its upstream dependencies, so a change propagates through the whole chain on read, while same-value changes keep downstream caches untouched.
+
+`Effects` are function that will be executed immediately after change of a watched state or computed state. If effect watches a state, will be executed imidiately after the state change. Effects that watch computed states are executed after next call when the value of that computed state is re-evaluated and the new value differs from the previous one (compared with `Object.is`). Reading a computed when nothing has changed will never fire its effects.
 
 ### What else?
 Signal entities are living in a entity - `signal-nest`. Signal-nest is like a storage for related signal entities. Smaller size of the nest will work faster, will be easyer to understand the relations among signal entities. Nothing stops you from creating single signal-nest for everything but multiple signal-nests are more developer friendly.
