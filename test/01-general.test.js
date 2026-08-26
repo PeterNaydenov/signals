@@ -124,17 +124,20 @@ describe ( 'Signals', () => {
 
 
 
-    it ( 'Effect on state change with arguments', () => {
+    it ( 'Effect on computed change with arguments', () => {
                     const h = signals ();
                     let 
                           one = h.state ( 2 )
                         , count = 0
+                        , fnCalls = 0
                         , computed = h.computed ( ( x ) => {
                                                 // First execution of computed will use default argument - 'hello'
-                                                if ( count == 0 )   expect ( x ).to.be.equal ( 'hello'  )
+                                                if ( fnCalls == 0 )   expect ( x ).to.be.equal ( 'hello'  )
                                                 // Second call of computed will use argument - 'mine'
-                                                if ( count == 1 )   expect ( x ).to.be.equal ( 'mine' )
-                                                // On call with no arguments - expect 'hello' as a default argument
+                                                if ( fnCalls == 1 )   expect ( x ).to.be.equal ( 'mine' )
+                                                // Re-evaluation runs before the effect fires, so both
+                                                // executions above happen while the effect counter is still 0
+                                                fnCalls++
                                                 return one.get () + 10
                                             }, 'hello' )
                         ;
@@ -150,6 +153,11 @@ describe ( 'Signals', () => {
                     one.get () 
 
                     computed.get ( 'mine' )
+                    expect ( fnCalls ).to.be.equal ( 2 )
+                    // Effect fired once - the recomputed value (14) differs from the previous one (12)
+                    expect ( count ).to.be.equal ( 1 )
+                    // Idle reads do not fire the effect anymore
+                    computed.get ()
                     expect ( count ).to.be.equal ( 1 )
             }) // it Effect on state change
 
@@ -426,6 +434,350 @@ describe ( 'Setup-time exceptions do not leak global state', () => {
         })
 
 }) // describe setup-time exceptions do not leak global state
+
+
+
+// ============================================================================
+// Regression: `computed.get()` used to re-run `fn` on *every* call after the
+// first dep change, because the dirty flag was never reset to `false` after
+// a recompute. Memoization was effectively broken: one state change turned
+// the computed into an uncached function forever. Now `dirty` is cleared
+// right after the value is recomputed, so `fn` runs only when a dep has
+// actually changed since the last read.
+// ============================================================================
+
+describe ( 'Computed memoization survives dependency changes', () => {
+
+    it ( 'does not re-evaluate fn on repeated get() calls after a dep change', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 2 )
+                    let calls = 0
+                    const c = sign.computed ( () => { calls++; return s.get () * 10 } )
+
+                    expect ( c.get () ).to.be.equal ( 20 )   // construction + first read
+                    // Note: fn ran once at construction; this read is cached.
+                    const callsAfterSetup = calls
+                    expect ( callsAfterSetup ).to.be.equal ( 1 )
+
+                    s.set ( 5 )                              // marks c dirty, but does not run fn
+                    expect ( calls ).to.be.equal ( 1 )
+
+                    expect ( c.get () ).to.be.equal ( 50 )   // dirty → recompute once
+                    expect ( calls ).to.be.equal ( 2 )
+
+                    expect ( c.get () ).to.be.equal ( 50 )   // clean → cached
+                    expect ( c.get () ).to.be.equal ( 50 )   // still cached
+                    expect ( calls ).to.be.equal ( 2 )
+        })
+
+
+    it ( 'recomputes again after each new dep change (dirty flag cycles)', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 0 )
+                    let calls = 0
+                    const c = sign.computed ( () => { calls++; return s.get () + 1 } )
+                    c.get ()
+                    s.set ( 10 )
+                    expect ( c.get () ).to.be.equal ( 11 )
+                    expect ( calls ).to.be.equal ( 2 )
+                    s.set ( 20 )
+                    expect ( c.get () ).to.be.equal ( 21 )
+                    expect ( calls ).to.be.equal ( 3 )
+        })
+
+}) // describe computed memoization
+
+
+
+// ============================================================================
+// Regression: effects on a computed used to fire on EVERY top-level read,
+// changed or not — the firing loop ran unconditionally whenever `!l.callID`,
+// with no dirty check and no value comparison. After a single dep change,
+// idle reads kept re-running effects forever. Now:
+//   1. Effects fire only when the read actually recomputed (dirty).
+//   2. Even then, they fire only if the new value differs from the previous
+//      one (compared with `Object.is`), as documented in the README.
+// ============================================================================
+
+describe ( 'Effects on computed fire only on real changes', () => {
+
+    it ( 'does not fire effects on repeated idle reads', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 0 )
+                    const c = sign.computed ( () => s.get () + 1 )
+                    let fired = 0
+                    sign.effect ( [c], () => fired++ )
+
+                    s.set ( 10 )                 // marks c dirty; effect does not fire yet
+                    expect ( fired ).to.be.equal ( 0 )
+                    c.get ()                     // recompute: 1 -> 11, value changed → fires
+                    expect ( fired ).to.be.equal ( 1 )
+
+                    c.get ()                     // clean → cached, no recompute, no fire
+                    c.get ()
+                    c.get ()
+                    expect ( fired ).to.be.equal ( 1 )
+        })
+
+
+    it ( 'does not fire effects when the recomputed value is identical (Object.is)', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 4 )
+                    const parity = sign.computed ( () => s.get () % 2 )   // 4 -> 0
+                    let fired = 0
+                    sign.effect ( [parity], () => fired++ )
+
+                    s.set ( 6 )                  // state changed 4 -> 6, but 6 % 2 === 0 % 2
+                    parity.get ()                // recompute produced the same value
+                    expect ( fired ).to.be.equal ( 0 )
+                    expect ( parity.get () ).to.be.equal ( 0 )
+
+                    s.set ( 7 )                  // now the computed value really changes
+                    parity.get ()
+                    expect ( fired ).to.be.equal ( 1 )
+        })
+
+
+    it ( 'fires once per real change across multiple change/read cycles', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 0 )
+                    const c = sign.computed ( () => s.get () * 2 )
+                    let fired = 0
+                    sign.effect ( [c], () => fired++ )
+
+                    s.set ( 5 ); c.get (); expect ( fired ).to.be.equal ( 1 )
+                    c.get ();    expect ( fired ).to.be.equal ( 1 )   // idle read
+                    s.set ( 7 ); c.get (); expect ( fired ).to.be.equal ( 2 )
+                    s.set ( 9 ); c.get (); expect ( fired ).to.be.equal ( 3 )
+        })
+
+}) // describe effects on computed fire only on real changes
+
+
+
+// ============================================================================
+// Regression: computed states used to be invisible to other computeds.
+// Only `state.get()` registered deps under COMPUTED_CALL, so a chain like
+// state -> computed -> computed never wired up, and downstream computeds
+// served stale cached values forever after an upstream change. Now:
+//   1. A `computed.get()` read from inside another computed's construction
+//      registers as a dep of that computed.
+//   2. `get()` also pulls: if any upstream computed is still marked dirty,
+//      the value is recomputed even when this one isn't flagged itself.
+// ============================================================================
+
+describe ( 'Chained computeds stay fresh', () => {
+
+    it ( 'recomputes a two-level chain after an upstream state change', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 2 )
+                    const b = sign.computed ( () => s.get () * 10 )
+                    const c = sign.computed ( () => b.get () + 1 )
+
+                    expect ( b.get () ).to.be.equal ( 20 )
+                    expect ( c.get () ).to.be.equal ( 21 )
+
+                    s.set ( 5 )                  // marks b dirty; c was never marked...
+                    expect ( b.get () ).to.be.equal ( 50 )
+                    expect ( c.get () ).to.be.equal ( 51 )   // ...but pulls through b
+
+                    // Also works when c is read first, without touching b explicitly
+                    s.set ( 7 )
+                    expect ( c.get () ).to.be.equal ( 71 )
+        })
+
+
+    it ( 'keeps three-level chains fresh', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 1 )
+                    const a = sign.computed ( () => s.get () + 1 )
+                    const b = sign.computed ( () => a.get () * 2 )
+                    const c = sign.computed ( () => b.get () - 3 )
+
+                    expect ( c.get () ).to.be.equal ( 1 )    // ((1+1)*2)-3
+                    s.set ( 10 )
+                    expect ( c.get () ).to.be.equal ( 19 )   // ((10+1)*2)-3
+        })
+
+
+    it ( 'stays cached when an upstream change does not alter the chain value', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 4 )
+                    let bCalls = 0, cCalls = 0
+                    const b = sign.computed ( () => { bCalls++; return s.get () % 2 } )   // 4 -> 0
+                    const c = sign.computed ( () => { cCalls++; return b.get () * 100 } )
+
+                    expect ( c.get () ).to.be.equal ( 0 )
+                    expect ( cCalls ).to.be.equal ( 1 )
+
+                    s.set ( 6 )                  // changes s, but 6 % 2 === 0 % 2 === 0
+                    expect ( c.get () ).to.be.equal ( 0 )
+                    expect ( cCalls ).to.be.equal ( 2 )   // pulled once, but value identical → still memoized result
+                    s.set ( 7 )                  // now parity flips
+                    expect ( c.get () ).to.be.equal ( 100 )
+                    expect ( cCalls ).to.be.equal ( 3 )
+        })
+
+
+    it ( 'effects attached to a downstream computed fire on real upstream changes', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 0 )
+                    const mid = sign.computed ( () => s.get () + 1 )
+                    const out = sign.computed ( () => mid.get () * 2 )
+                    let fired = 0
+                    sign.effect ( [out], () => fired++ )
+
+                    s.set ( 5 )                  // 6*2=12 vs old 2 → real change
+                    out.get ()
+                    expect ( fired ).to.be.equal ( 1 )
+
+                    out.get ()                   // idle read
+                    expect ( fired ).to.be.equal ( 1 )
+        })
+
+}) // describe chained computeds stay fresh
+
+
+
+// ============================================================================
+// Regression: the computed cache used to be a single value slot that ignored
+// arguments. After `c.get(5)` overwrote the cache, a later arg-less `c.get()`
+// served the result computed for 5 instead of recomputing with the default
+// args. Now each cached value remembers the argument set it was computed
+// with (`cachedArgs`), and a call with a different argument set recomputes.
+// ============================================================================
+
+describe ( 'Computed memoization respects arguments', () => {
+
+    it ( 'returns correct values when call styles are interleaved', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 10 )
+                    let calls = 0
+                    const c = sign.computed ( x => { calls++; return s.get () + x }, 0 )
+
+                    expect ( c.get ()   ).to.be.equal ( 10 )   // fn(0)
+                    expect ( c.get ( 5 )).to.be.equal ( 15 )   // different args → recompute, fn(5)
+                    expect ( c.get ()   ).to.be.equal ( 10 )   // back to defaults → recompute, fn(0)
+                    expect ( c.get ( 5 )).to.be.equal ( 15 )   // and again
+                    expect ( calls      ).to.be.equal ( 4 )
+        })
+
+
+    it ( 'does not recompute when the same argument set repeats while clean', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 10 )
+                    let calls = 0
+                    const c = sign.computed ( x => { calls++; return s.get () + x }, 0 )
+
+                    expect ( c.get ( 5 ) ).to.be.equal ( 15 )
+                    expect ( c.get ( 5 ) ).to.be.equal ( 15 )   // same args → cached
+                    expect ( c.get ( 5 ) ).to.be.equal ( 15 )   // still cached
+                    expect ( calls ).to.be.equal ( 2 )          // 1 construction run + 1 recompute
+
+                    s.set ( 20 )                                 // dep change dirties the computed...
+                    expect ( c.get ( 5 ) ).to.be.equal ( 25 )    // ...recompute with requested args
+                    expect ( calls ).to.be.equal ( 3 )
+        })
+
+}) // describe computed memoization respects arguments
+
+
+
+// ============================================================================
+// Regression: an effect whose body reads its own watched computed used to
+// self-trigger forever — effect bodies ran with null call markers, so the
+// nested read counted as "top-level" and re-fired the effect on every read.
+// The change-detection fix (effects fire only after a dirty recompute with
+// a changed value) defused this: the nested read finds a clean computed and
+// is served from cache. These tests lock that behavior in.
+// ============================================================================
+
+describe ( 'Effect reentrancy safety', () => {
+
+    it ( 'effect body reading its own watched computed does not re-fire itself', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 0 )
+                    const c = sign.computed ( () => s.get () + 1 )
+                    let fired = 0
+                    sign.effect ( [c], () => { c.get (); fired++ } )
+
+                    s.set ( 10 )                 // marks c dirty; no fire yet
+                    expect ( fired ).to.be.equal ( 0 )
+                    c.get ()                     // recompute → fires once; nested c.get() inside must NOT re-fire
+                    expect ( fired ).to.be.equal ( 1 )
+        })
+
+
+    it ( 'multiple effects on one computed each run exactly once per real change', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 0 )
+                    const c = sign.computed ( () => s.get () * 2 )
+                    let a = 0, b = 0
+                    sign.effect ( [c], () => { c.get(); a++ } )
+                    sign.effect ( [c], () => b++ )
+
+                    s.set ( 3 )
+                    c.get ()
+                    expect ( a ).to.be.equal ( 1 )
+                    expect ( b ).to.be.equal ( 1 )
+        })
+
+}) // describe effect reentrancy safety
+
+
+
+// ============================================================================
+// Regression: validators used to receive the live value reference, so a
+// mutating validator could corrupt the caller's object before the value was
+// cloned. Also: one throwing effect used to abort all remaining effects of
+// the same set() / computed.get(), even though the state change itself had
+// already been committed. Now values are cloned BEFORE validation and every
+// effect runs isolated; collected errors are re-thrown together afterwards.
+// ============================================================================
+
+describe ( 'Validation and effect-error isolation', () => {
+
+    it ( 'a mutating validator cannot corrupt the original object passed to set()', () => {
+                    const sign = signals ()
+                    const s = sign.state ( { v: 0 } )
+                    const input = { v: 5 }
+                    s.set ( input, )
+                    // validator mutates its argument — with clone-before-validate
+                    // this only touches the internal candidate, never `input`
+                    const guarded = sign.state ( { v: 0 }, obj => { obj.v = 999; return true } )
+                    const input2 = { v: 1 }
+                    expect ( guarded.set ( input2 ) ).to.be.true
+                    expect ( input2.v ).to.be.equal ( 1 )            // caller's object untouched
+                    expect ( guarded.get () ).to.not.equal ( input2 ) // stored copy is a different reference
+                    expect ( guarded.get ().v ).to.be.equal ( 999 )   // mutation applied to the copy only
+        })
+
+
+    it ( 'initial-value validation also sees an isolated clone', () => {
+                    const sign = signals ()
+                    const initial = { v: 1 }
+                    const s = sign.state ( initial, obj => { obj.v = 42; return true } )
+                    expect ( initial.v ).to.be.equal ( 1 )           // untouched
+                    expect ( s.get ().v ).to.be.equal ( 42 )
+        })
+
+
+    it ( 'one throwing effect does not stop sibling effects; errors are re-thrown after all ran', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 0 )
+                    let second = 0
+                    sign.effect ( [s], () => { throw new Error ( 'boom' ) } )
+                    sign.effect ( [s], () => second++ )
+
+                    expect ( () => s.set ( 1 ) ).to.throw ( AggregateError )
+                    expect ( second ).to.be.equal ( 1 )              // sibling ran despite the throw
+                    expect ( s.get () ).to.be.equal ( 1 )            // change was committed
+                    // ...and both effects still work on subsequent sets
+                    expect ( () => s.set ( 2 ) ).to.throw ( AggregateError )
+                    expect ( second ).to.be.equal ( 2 )
+        })
+
+}) // describe validation and effect-error isolation
 
 
 
