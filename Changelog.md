@@ -2,7 +2,12 @@
 
 
 
-## 1.3.1 (2026-08-26) 
+### 1.4.0 (2026-09-05)
+- [x] Feature: Added a skill at `skills/signals/SKILL.md`;
+
+
+
+## 1.3.1 (2026-08-26)
 - [x] Fix: computed states lost their memoization after the first dependency change — every following read re-executed the computed function. The cache now survives until the next real dependency change;
 - [x] Fix: effects attached to a computed state fired on every read of that computed, even when nothing had changed. Effects now fire only when the computed is re-evaluated and the new value differs from the previous one;
 - [x] Fix: computed states built on top of other computed states could serve stale values after an upstream change. Chained computeds now stay fresh automatically, while same-value changes keep downstream caches untouched;
