@@ -10,8 +10,9 @@ description: |
   values, or "state that automatically re-runs effects when it
   changes". Do NOT use for: full state management with persistence /
   TTL / API integration (point to `@peter.naydenov/data-pool`),
-  virtual DOM diffing (point to `@peter.naydenov/morph`), or fixing
-  bugs in the library itself.
+  rendering HTML from templates (point to `@peter.naydenov/morph`, a
+  string template engine — not a DOM-diffing library), or fixing bugs
+  in the library itself.
 ---
 
 # git-signals helper
@@ -67,7 +68,22 @@ Source of truth:
 
 5. **If the request is for state management with persistence, TTL, API integration, or async data fetching**, this is the wrong layer. Point the user at `@peter.naydenov/data-pool` (which uses `signals` internally and adds store / cache / API layers).
 
-6. **If the request is for declarative UI binding** (auto-rerender a DOM tree on state change), this library is a low-level primitive. Pair it with `@peter.naydenov/morph` (template engine) — call `morph(target, render(state))` inside an `effect` to get auto-rerendering.
+6. **If the request is for declarative UI binding** (auto-rerender a DOM tree on state change), this library is a low-level primitive. Pair it with `@peter.naydenov/morph`, a **string template engine** — it does no DOM diffing, has no mount step, and has no `create` / `html` tagged-template / `mount` API. Build a render function with `morph.build({ template, helpers })`, call it inside an `effect` to get an HTML string, and write that string to the DOM yourself:
+
+   ```js
+   import signal from '@peter.naydenov/signals'
+   import morph  from '@peter.naydenov/morph'
+
+   const h = signal()
+   const user = h.state({ name: 'Ann' })
+   const card = morph.build({ template: `<p>Hello, {{ name }}</p>`, escape: true })
+
+   h.effect([user], () => {
+       document.querySelector('#card').innerHTML = card('render', user.get())
+   })
+   ```
+
+   The whole target is replaced on each run. For anything beyond that, see the morph skill / README — don't invent morph APIs from this skill.
 
 7. **If the request is for async state updates** (state that needs to be set after a `fetch` or `await`), `set` is fine inside `await` blocks — the effect fires synchronously after the `set` call. There's no need for a separate async path. Just `await fetch(...); state.set(result)`.
 
