@@ -2,6 +2,17 @@
 
 
 
+### 1.5.0 (2026-10-10)
+- [x] Feature: TypeScript declarations ship with the package;
+- [x] Feature: `exports` map in `package.json`;
+- [x] Fix: effects on a computed fired on every upstream `state.set()` when the computed was stale at effect setup;
+- [x] Package: only `src`, `types`, `skills` and docs are published;
+- [x] Package: `engines` field — Node.js 17+;
+- [x] Docs: README example and typos fixed, TypeScript section added;
+- [x] Docs: skill corrected — computed construction, effect dependencies, CommonJS usage;
+
+
+
 ### 1.4.0 (2026-09-05)
 - [x] Feature: Added a skill at `skills/signals/SKILL.md`;
 
