@@ -16,10 +16,10 @@ All `computed states` are memoized for future calls: the function runs once at c
 
 `Computed states` can be built on top of other computed states. Chains like `state -> computed -> computed` stay fresh automatically: each computed tracks the versions of its upstream dependencies, so a change propagates through the whole chain on read, while same-value changes keep downstream caches untouched.
 
-`Effects` are function that will be executed immediately after change of a watched state or computed state. If effect watches a state, will be executed imidiately after the state change. Effects that watch computed states are executed after next call when the value of that computed state is re-evaluated and the new value differs from the previous one (compared with `Object.is`). Reading a computed when nothing has changed will never fire its effects.
+`Effects` are function that will be executed immediately after change of a watched state or computed state. If effect watches a state, will be executed immediately after the state change. Effects that watch computed states are executed after next call when the value of that computed state is re-evaluated and the new value differs from the previous one (compared with `Object.is`). Reading a computed when nothing has changed will never fire its effects.
 
 ### What else?
-Signal entities are living in a entity - `signal-nest`. Signal-nest is like a storage for related signal entities. Smaller size of the nest will work faster, will be easyer to understand the relations among signal entities. Nothing stops you from creating single signal-nest for everything but multiple signal-nests are more developer friendly.
+Signal entities are living in a entity - `signal-nest`. Signal-nest is like a storage for related signal entities. Smaller size of the nest will work faster, will be easier to understand the relations among signal entities. Nothing stops you from creating single signal-nest for everything but multiple signal-nests are more developer friendly.
 
 Provide a validation function for signal states. Check if value is valid and then set it.
 
@@ -44,7 +44,7 @@ simple.get () // => 1
 const complex = signalNest.computed ( () => simple.get () + 10 );
 
 complex.get () // => 11
-signal.set ( 2 ) // => true
+simple.set ( 2 ) // => true
 complex.get () // => 12
 
 // Computed with arguments. Set default argument value in case if no arguments are provided
@@ -53,7 +53,7 @@ const complex2 = signalNest.computed ( x => simple.get () + 10 + x , 0 );
 // Request with no arguments will use default value
 // simple == 2, argument == 0 then computed = 2+10+0 = 12
 complex2.get () // => 12
-signal.set ( 3 ) // => true
+simple.set ( 3 ) // => true
 // simple == 3, argument == 2 then computed = 3+10+2 = 15
 complex2.get (2) // => 15
 
@@ -71,7 +71,7 @@ signalNest.effect ( [complex], () => {
 
 
 
-simple.set ( 3 )   // => true, => simple changed
+simple.set ( 4 )   // => true, -> "signal state changed"
 
 // ... no execution of computed effect. Requires a call
 complex.get () // -> 'computed effect'
@@ -96,6 +96,24 @@ const signalNest = signal ();
 const a = signalNest.state ( 0 );
 signalNest.effect ( [a], () => console.log ( 'a was changed' ) );
 // etc...
+```
+
+Requires Node.js 17+ (or any modern browser). The package is ESM-only.
+
+
+
+## TypeScript
+
+Type declarations ship with the package — no `@types` package needed.
+
+```ts
+import signal, { type State, type Computed, type SignalNest } from '@peter.naydenov/signals';
+
+const nest: SignalNest = signal ();
+const count: State<number> = nest.state ( 0 );
+const plus: Computed<number, [number]> = nest.computed ( ( x: number ) => count.get () + x, 0 );
+
+count.set ( 'one' ) // type error: string is not assignable to number
 ```
 
 
@@ -131,7 +149,7 @@ else {
 
 
 ## License
-'@peter.naydenov/signals' is released under the [MIT License](https://github.com/PeterNaydenov/signals/blob/master/LICENSE).
+'@peter.naydenov/signals' is released under the [MIT License](https://github.com/PeterNaydenov/signals/blob/main/LICENSE).
 
 
 

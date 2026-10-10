@@ -53,7 +53,7 @@ function sameArgs ( a, b ) {
 
 /**
  * Creates a computed reactive item that derives its value from `fn`. The
- * value is lazy: `fn` runs once at construction (with the constructor's
+ * value is memoized: `fn` runs once at construction (with the constructor's
  * `args`), and again on each `.get()` only after the staleness check
  * (`isStale`) detects that an upstream state/computed actually changed,
  * or when the call's arguments differ from those of the cached evaluation.
@@ -143,7 +143,21 @@ return function computed ( fn, ...args ) {
                                 const needsRecompute = isStale ( rec ) || !sameArgs ( args, rec.cachedArgs )
                                 if ( needsRecompute ) {
                                             const oldValue = rec.value
-                                            rec.value = rec.fn (...args)
+                                            // Clear the global call markers while `fn` runs: when this
+                                            // read happens inside an effect setup or a computed
+                                            // construction, the reads inside `fn` must not register
+                                            // that outer caller directly on our upstream states.
+                                            // Staleness is already propagated via `dependsOn`.
+                                            const callID   = l.callID
+                                            const callType = l.callType
+                                            l.callID   = null
+                                            l.callType = null
+                                            try {
+                                                        rec.value = rec.fn (...args)
+                                                } finally {
+                                                        l.callID   = callID
+                                                        l.callType = callType
+                                                }
                                             rec.dirty = false
                                             rec.cachedArgs = args
                                             // Refresh the seen-versions AFTER fn runs so any

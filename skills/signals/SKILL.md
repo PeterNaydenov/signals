@@ -2,7 +2,7 @@
 name: signals
 description: |
   Help developers use `@peter.naydenov/signals` (the `signal` reactivity
-  library, v1.3.1): create a signal-nest with `signal()`, build reactive
+  library, v1.4.0): create a signal-nest with `signal()`, build reactive
   cells with `state(initialValue, validation?)`, derive values with
   `computed(fn, ...defaultArgs)`, and register side effects with
   `effect(relations, fn, ...args)`. Use when a developer asks for a
@@ -41,7 +41,8 @@ Source of truth:
    - "Reject bad values automatically" / "validated state" → `h.state(initialValue, validator)` — pass `false` to opt out
 
 2. **Generate code that follows the real API contract**:
-   - ESM import: `import signal from '@peter.naydenov/signals'` (CJS: `require('@peter.naydenov/signals')`)
+   - ESM import: `import signal from '@peter.naydenov/signals'` — the package is ESM-only. CJS works only on Node versions with `require(esm)` support (20.19+ / 22.12+), and the factory is on `.default`: `const signal = require('@peter.naydenov/signals').default`
+   - TypeScript declarations ship with the package (`types/main.d.ts`): `state<T>` returns `State<T>` (`get(): T`, `set(v: T): boolean`, `modify(fn: (v: T) => T): boolean`), `computed` returns `Computed<R, A>`, `signal()` returns `SignalNest`. No `@types/...` package is needed
    - Default export is a **factory function**: `const h = signal()`. Each call returns a fresh, independent `signal-nest`. Multiple `signal()` calls do NOT share state.
    - **Naming trap:** the `import` is named `signal` (singular, the package name), but the instance variable is conventionally `h` or `signals` (the "nest"). Don't write `const signal = signal()` and then call `signal.state(...)` — the variable name shadows the import and reads confusingly.
    - `h.state(initialValue, validation?)` returns an object with `get()` / `set(value)` / `modify(fn)`. **No `update` or `value` property** — those are common names in other reactivity libraries and would be wrong here.
@@ -50,21 +51,21 @@ Source of truth:
    - All three primitives accept extra args (`...args`) that are forwarded to their callbacks. Use this for context the callback needs but you don't want to close over.
 
 3. **Apply the reactivity rules — the part most AIs get wrong**:
-   - **Dep tracking is automatic via `get()`**, not by listing dependencies at construction. A state / computed is added to a caller's dep set **only if you call `.get()` on it inside the callback**. If your `computed(fn)` reads no state, it never re-runs. If your `effect(fn)` doesn't read any of the `relations` you passed, it never fires.
-   - The `effect(relations, ...)` first arg is a **predeclared list** of which state changes should trigger the effect. The actual `get()` calls inside the callback add the deeper deps (e.g. a computed that reads a state). Use `relations` for "fire me on these changes"; the callback's `get()` calls are what makes the effect re-run with fresh values.
+   - **Computeds track deps automatically via `get()`.** A state / computed becomes a dep of a computed **only if `fn` calls `.get()` on it**. If your `computed(fn)` reads no state, it never re-runs.
+   - **Effects watch exactly their `relations` array — nothing else.** `effect()` calls `.get()` on each relation once at setup to subscribe. Reads inside the callback are NOT tracked: a state read only in the callback does not trigger the effect, and the callback does not need to read its relations for the effect to fire. Put every state / computed that should trigger the effect in `relations`.
    - **Effects on a state fire synchronously on `state.set()`** — the effect callback runs before `set` returns to the caller. Order of effects: registration order, not set-order.
    - **Effects on a computed fire lazily on next `.get()`** that sees a new value. The effect does NOT fire if the computed is dirty but never re-read. A computed that returns the same value (per `Object.is`) does not fire its effects at all.
    - **`state.set(value)` is "fire-dependents-blind"** — it fires the effects even if the new value is `Object.is`-equal to the old. There is no built-in deep-equality check. If you want "set only if changed", call `get()` first and compare yourself.
    - **Effects are isolated from each other.** If effect A throws, effect B still runs. Errors are collected and re-thrown together as a single `AggregateError`. The state change itself is committed regardless.
 
 4. **Surface only the relevant gotcha proactively** — pick at most one from the list below that applies to the current example, and only if the user is unlikely to know it:
-   - **Dep tracking is via `get()`, not the `relations` array.** Forgetting to call `state.get()` inside a `computed` means the computed has no deps and never re-runs. A common bug.
+   - **Computed deps come from `get()` calls; effect deps come from `relations`.** Forgetting to call `state.get()` inside a `computed` means it has no deps and never re-runs. Forgetting to list a state in an effect's `relations` means its changes never fire the effect, even if the callback reads it.
    - **Validation runs on the initial value too.** `h.state(-1, v => v >= 0)` throws at construction with `TypeError('signals: initial value failed validation')`. Pass `false` to disable validation entirely.
    - **Values are deep-cloned via `structuredClone`.** Functions and Symbols are not cloneable — they throw a clear `TypeError('signals: state value cannot be cloned (...)')`. Don't store functions in state.
    - **`set` returns a boolean**, not throws. `false` means validation rejected the new value. The library's `TypeError` only fires for bad input shapes, not for value rejection.
    - **Effects are isolated; errors are aggregated.** One throwing effect doesn't break the others. The library throws a single `AggregateError` after every effect had its chance. Catch this if you want to suppress the error; otherwise let it bubble.
-   - **Computed is lazy.** `h.computed(fn)` does NOT call `fn` at construction. The first call to `.get()` does. Don't rely on side effects in `fn` — use `effect` for that.
-   - **Effect's `relations` is a hint, not a hard constraint.** Pass the state(s) that should trigger the effect; the `get()` calls inside the callback are the actual deps for re-runs. You can pass more or fewer than what the callback reads — the effect fires when any of the `relations` change, but re-runs the callback regardless of which one.
+   - **Computed runs once at construction.** `h.computed(fn, ...args)` calls `fn(...args)` immediately (that's how it discovers its deps), so `fn` must be safe to run at that point. After that it recomputes lazily, on `.get()`, only when a dep changed or the args differ. Don't rely on side effects in `fn` — use `effect` for that.
+   - **An effect's `relations` is the complete trigger list.** The effect fires when any of them changes, whichever one it is; reads inside the callback add nothing. Effects can't be removed — there's no disposer.
 
 5. **If the request is for state management with persistence, TTL, API integration, or async data fetching**, this is the wrong layer. Point the user at `@peter.naydenov/data-pool` (which uses `signals` internally and adds store / cache / API layers).
 
@@ -117,7 +118,7 @@ count.set(1)   // logs: "count is 1"
 count.set(2)   // logs: "count is 2"
 ```
 
-`effect(relations, fn)` fires synchronously when any state in `relations` changes. The `count.get()` inside the effect registers the dep for re-runs. See `Effect` in `src/effects.js`.
+`effect(relations, fn)` fires synchronously when any state in `relations` changes. The effect is subscribed through the `relations` array; the `count.get()` inside the callback just reads the current value. See `Effect` in `src/effects.js`.
 
 **"A computed total that auto-updates from line items"**
 
@@ -134,7 +135,7 @@ qty.set(5)
 console.log(total.get())   // 50  (lazy — recomputed on read)
 ```
 
-`computed` is lazy: it does not run `fn` at construction, only on the first `.get()`. Subsequent `.get()` calls re-use the cached value if the dependency versions haven't changed. The dep tracking is automatic — every `state.get()` inside `fn` registers the state as a dep. See `computed` in `src/computed.js`.
+`computed` runs `fn` once at construction to discover its deps, then recomputes lazily: `.get()` re-uses the cached value unless a dependency version changed (or the args differ). The dep tracking is automatic — every `state.get()` inside `fn` registers the state as a dep. See `computed` in `src/computed.js`.
 
 **"Validated state — only positive numbers"**
 
@@ -164,4 +165,4 @@ clicks.modify(n => n + 1)
 clicks.get()  // 2
 ```
 
-`modify(fn)` is the idiomatic increment — `fn` receives the current value, returns the new one, validation still applies. Use this instead of `clicks.set(clicks.get() + 1)` to avoid the read-then-write race. See `state.modify` in `src/states.js`.
+`modify(fn)` is the idiomatic increment — `fn` receives the current value, returns the new one, validation still applies. Use this instead of `clicks.set(clicks.get() + 1)` — it's shorter and keeps the read and the write in one call. See `state.modify` in `src/states.js`.

@@ -781,4 +781,36 @@ describe ( 'Validation and effect-error isolation', () => {
 
 
 
+describe ( 'Setup reads of a stale computed', () => {
+
+    it ( 'effect on a computed that is stale at setup does not subscribe to its upstream state', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 0 )
+                    const c = sign.computed ( () => s.get () + 10 )
+                    s.set ( 1 )                                      // c is stale now
+                    let fired = 0
+                    sign.effect ( [c], () => fired++ )               // setup read recomputes c
+
+                    s.set ( 5 )
+                    expect ( fired ).to.be.equal ( 0 )               // lazy: no fire on state.set
+                    expect ( c.get () ).to.be.equal ( 15 )
+                    expect ( fired ).to.be.equal ( 1 )               // fires on the read that sees the change
+        })
+
+
+    it ( 'computed built on a stale computed still follows upstream changes', () => {
+                    const sign = signals ()
+                    const s = sign.state ( 1 )
+                    const inner = sign.computed ( () => s.get () * 2 )
+                    s.set ( 2 )                                      // inner is stale now
+                    const outer = sign.computed ( () => inner.get () + 1 )
+                    expect ( outer.get () ).to.be.equal ( 5 )
+                    s.set ( 3 )
+                    expect ( outer.get () ).to.be.equal ( 7 )
+        })
+
+}) // describe setup reads of a stale computed
+
+
+
 }) // describe

@@ -17,12 +17,12 @@ import computedLib from './computed.js'
  *
  * @returns {Object} A signals API with the three primitives:
  *  - `state(initialValue, validation?)` — create a reactive cell.
- *  - `computed(fn, ...args)` — create a derived, lazy reactive value.
+ *  - `computed(fn, ...args)` — create a derived, memoized reactive value.
  *  - `effect(relations, fn, ...args)` — register a side effect on the
  *    given relations.
  * @example
- *   const signals = require ( '@peter.naydenov/signals' )
- *   const h = signals ()
+ *   import signal from '@peter.naydenov/signals'
+ *   const h = signal ()
  *   const count = h.state ( 0 )
  *   h.effect ( [count], () => console.log ( 'count changed' ) )
  *   count.set ( 1 )     // -> "count changed"

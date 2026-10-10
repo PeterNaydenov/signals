@@ -5,9 +5,28 @@
   "license": "MIT",
   "author": "Peter Naydenov",
   "main": "src/main.js",
+  "types": "./types/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/main.d.ts",
+      "default": "./src/main.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "types",
+    "skills",
+    "Changelog.md",
+    "Migration.guide.md"
+  ],
+  "engines": {
+    "node": ">=17.0.0"
+  },
   "type": "module",
   "scripts": {
     "test": "mocha test",
+    "test:types": "tsc -p .",
     "cover": "c8 npm test"
   },
   "repository": {
@@ -21,12 +40,12 @@
   "bugs": {
     "url": "https://github.com/PeterNaydenov/signals/issues"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "c8": "^12.0.0",
     "chai": "^6.3.0",
-    "mocha": "^12.0.3"
+    "mocha": "^12.0.3",
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "diff": "^8.0.4",
