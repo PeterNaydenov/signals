@@ -2,6 +2,15 @@
 
 
 
+### 1.5.1 (2026-10-11)
+- [x] Fix: CommonJS consumers could not use the package. `require('@peter.naydenov/signals')` returned the ES-module namespace `{ __esModule, default }` instead of the factory (`signals is not a function`), or threw `ERR_REQUIRE_ESM` on Node versions without `require(esm)`. A CommonJS build (`dist/signals.cjs`) is now published and `require()` returns the factory directly;
+- [x] Types: CommonJS declarations (`types/main.d.cts`) with `export =`, so TypeScript CJS code (`import signals = require(...)`) sees the function. Types are re-exported from `main.d.ts` under the `signals` namespace (`signals.State`, `signals.Computed`, ...);
+- [x] Package: `exports` has separate `import` / `require` conditions, each with its own types. Added `./dist/*` and `./src/*` subpaths;
+- [x] Package: `dist` is published. Build with `npm run build` (rollup); `prepublishOnly` runs tests and rebuilds `dist` before every publish;
+- [x] Dev: TypeScript upgraded to 7;
+
+
+
 ### 1.5.0 (2026-10-10)
 - [x] Feature: TypeScript declarations ship with the package;
 - [x] Feature: `exports` map in `package.json`;
